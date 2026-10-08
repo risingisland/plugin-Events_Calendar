@@ -1,0 +1,636 @@
+/* Events Calendar - front end (list and grid views)
+   Written to survive aggressive theme CSS: selectors are scoped under .evc and the
+   box-model properties themes most often override use !important.
+   Restyle from your theme with the variables below, e.g.
+   .evc { --evc-radius: 8px; --evc-pad: 16px; --evc-font-size: 14px; } */
+
+.evc {
+  --evc-text: #4a4668;
+  --evc-muted: #8883ad;
+  --evc-card: #fff;
+  --evc-radius: 18px;
+  --evc-shadow: 0 4px 18px rgba(74, 70, 104, .10);
+  --evc-gap: 24px;
+  --evc-pad: 20px;
+  --evc-font-size: 15px;
+  --evc-accent: #f51b50;
+
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: var(--evc-text);
+  font-size: var(--evc-font-size);
+  line-height: 1.5;
+  text-align: left;
+}
+.evc, .evc *, .evc *::before, .evc *::after { box-sizing: border-box; }
+
+/* ---------- Card ---------- */
+.evc .evc-card {
+  display: block;
+  position: relative;
+  float: none;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: var(--evc-card);
+  border-radius: var(--evc-radius);
+  box-shadow: var(--evc-shadow);
+  overflow: hidden;
+  color: var(--evc-text);
+  cursor: pointer;
+  transition: box-shadow .15s ease;
+}
+.evc .evc-card:hover { box-shadow: 0 8px 26px rgba(74, 70, 104, .18); }
+.evc .evc-card:focus-visible { outline: 3px solid var(--evc-accent); outline-offset: 2px; }
+
+.evc .evc-card-body {
+  display: block;
+  margin: 0 !important;
+  padding: var(--evc-pad) !important;
+  border: 0 !important;
+  background: none;
+}
+
+/* ---------- Image area ---------- */
+.evc .evc-card-img {
+  display: block;
+  position: relative;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden;
+  background: #e9e8f5;
+}
+.evc .evc-card-img img {
+  display: block !important;
+  position: static;
+  float: none;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  object-fit: cover;
+}
+
+/* Placeholder for events without an image: event colour + calendar icon */
+.evc .evc-noimg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--evc-color, #6c6ce5);
+}
+.evc .evc-noimg::before {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(0, 0, 0, .22));
+}
+.evc .evc-noimg .evc-ic {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 44px;
+  margin: 0 !important;
+  color: #fff;
+  opacity: .9;
+  stroke-width: 1.4;
+}
+
+/* ---------- Text ---------- */
+.evc .evc-card-title {
+  margin: 0 0 .5em !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none;
+  font-family: inherit;
+  font-size: 1.15em;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  color: var(--evc-text);
+}
+.evc .evc-card-title::before {
+  content: "";
+  display: inline-block;
+  width: .5em;
+  height: .5em;
+  margin: 0 .5em 0 0;
+  border-radius: 50%;
+  background: var(--evc-color, #6c6ce5);
+  vertical-align: .08em;
+}
+.evc .evc-card-title::after { content: none; }
+
+.evc .evc-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: .55em;
+  margin: .25em 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: .93em;
+  line-height: 1.4;
+  color: var(--evc-muted);
+}
+.evc .evc-meta .evc-ic {
+  display: block;
+  position: static;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: .1em 0 0 !important;
+  padding: 0;
+}
+.evc .evc-meta span {
+  display: block;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.evc .evc-card-text {
+  margin: .75em 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: 1em;
+  line-height: 1.5;
+  color: var(--evc-text);
+}
+.evc .evc-empty { margin: 0; padding: 0; color: var(--evc-muted); }
+
+/* ---------- Grid view ---------- */
+.evc.evc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--evc-gap);
+  align-items: start;
+}
+.evc.evc-grid.evc-cols-1 { grid-template-columns: minmax(0, 1fr); }
+.evc.evc-grid.evc-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.evc.evc-grid.evc-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.evc.evc-grid .evc-card-img { aspect-ratio: 16 / 9; }
+.evc.evc-grid .evc-empty { grid-column: 1 / -1; }
+
+/* ---------- List view ---------- */
+.evc.evc-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--evc-gap);
+}
+.evc.evc-list .evc-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px !important;
+}
+.evc.evc-list .evc-card-img {
+  flex: 0 0 32%;
+  width: auto;
+  max-width: 340px;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+}
+.evc.evc-list .evc-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 !important;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  .evc.evc-grid.evc-cols-3,
+  .evc.evc-grid.evc-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .evc.evc-grid.evc-cols-2,
+  .evc.evc-grid.evc-cols-3,
+  .evc.evc-grid.evc-cols-4 { grid-template-columns: minmax(0, 1fr); }
+
+  .evc.evc-list .evc-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px !important;
+  }
+  .evc.evc-list .evc-card-img { flex: none; width: 100%; max-width: none; }
+}
+
+
+/* =====================================================================
+   Month calendar (EventCalendar library, mounted inside .evc-calendar)
+   The library keeps its own .ec-* classes; everything here is scoped
+   under .evc-calendar so it wins over the library CSS and the theme.
+   ===================================================================== */
+.evc.evc-calendar {
+  background: #fff;
+  border-radius: var(--evc-radius);
+  box-shadow: var(--evc-shadow);
+  overflow: hidden;
+}
+.evc-calendar .ec {
+  --ec-bg-color: #fff;
+  --ec-text-color: var(--evc-text);
+  --ec-border-color: #e3e1ee;
+  --ec-today-bg-color: #fff;
+  --ec-highlight-color: #f4f3fa;
+  --ec-popup-bg-color: #fff;
+  --ec-button-bg-color: var(--evc-accent);
+  --ec-button-border-color: var(--evc-accent);
+  --ec-button-text-color: #fff;
+  --ec-button-active-bg-color: #d6103f;
+  --ec-button-active-border-color: #d6103f;
+  --ec-button-active-text-color: #fff;
+  color: var(--evc-text);
+  font-family: inherit;
+  font-size: var(--evc-font-size);
+  line-height: 1.5;
+}
+
+/* Header: title left, buttons right */
+.evc-calendar .ec-toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 20px 24px;
+}
+.evc-calendar .ec-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-family: inherit;
+  font-size: 1.7em;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--evc-text);
+}
+.evc-year { color: var(--evc-accent); }
+.evc-calendar .ec-button {
+  min-width: 2.5em;
+  margin: 0;
+  padding: .4em .85em;
+  border-radius: 6px;
+  box-shadow: none;
+  font-family: inherit;
+  font-size: .95em;
+  line-height: 1.4;
+  letter-spacing: normal;
+  text-transform: none;
+  text-shadow: none;
+}
+
+/* Weekday headings and day cells */
+.evc-calendar .ec-col-head {
+  padding: .9em 0;
+  font-weight: 700;
+  background: #fff;
+  color: var(--evc-text);
+}
+.evc-calendar .ec-day-grid .ec-day { min-height: 5.5em; }
+.evc-calendar .ec-day-head { padding: .5em .65em !important; }
+.evc-calendar .ec-day-head time { color: var(--evc-text); }
+.evc-calendar .ec-day.ec-sat .ec-day-head time,
+.evc-calendar .ec-day.ec-sun .ec-day-head time { color: var(--evc-accent); }
+.evc-calendar .ec-day.ec-today .ec-day-head time {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.9em;
+  height: 1.9em;
+  padding: 0 .3em;
+  border-radius: 999px;
+  background: var(--evc-accent);
+  color: #fff;
+  opacity: 1;
+}
+
+/* Events: rounded bars */
+.evc-calendar .ec-event {
+  padding: 1px 10px;
+  border-radius: 999px;
+  box-shadow: none;
+  font-size: .82em;
+  line-height: 1.7;
+  cursor: pointer;
+}
+.evc-calendar .ec-event:hover { filter: brightness(.94); }
+.evc-calendar .ec-event:focus-visible { outline: 2px solid var(--evc-text); outline-offset: 1px; }
+.evc-calendar .ec-event .ec-event-title { font-weight: 600; }
+.evc-calendar .ec-day-foot a { color: var(--evc-accent); }
+
+/* List layout used on phones */
+.evc-calendar .ec-list .ec-event { cursor: pointer; }
+.evc-calendar .ec-list .ec-day-head { font-weight: 700; }
+.evc-calendar .ec-list .ec-event-title { font-size: 1em; }
+
+@media (max-width: 560px) {
+  .evc-calendar .ec-toolbar { padding: 14px 14px; }
+  .evc-calendar .ec-title { font-size: 1.35em; }
+  .evc-calendar .ec-day-grid .ec-day { min-height: 4em; }
+  .evc-calendar .ec-event { padding: 0 6px; font-size: .72em; }
+}
+
+/* =====================================================================
+   Compact dots calendar (sidebar friendly)
+   ===================================================================== */
+.evc.evc-compact {
+  background: #fff;
+  border-radius: var(--evc-radius);
+  box-shadow: var(--evc-shadow);
+  overflow: hidden;
+  font-size: calc(var(--evc-font-size) * .93);
+}
+.evc .evc-c-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin: 0;
+  padding: 14px 10px;
+}
+.evc .evc-c-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.05em;
+  line-height: 1.2;
+  color: var(--evc-text);
+}
+.evc .evc-c-btn {
+  flex: none;
+  width: 1.9em;
+  height: 1.9em;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: var(--evc-accent) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  font: inherit;
+  font-size: 1em;
+  line-height: 1;
+  cursor: pointer;
+}
+.evc .evc-c-btn:hover { background: #d6103f !important; }
+
+.evc .evc-c-table {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: none;
+}
+.evc .evc-c-table th,
+.evc .evc-c-table td {
+  margin: 0;
+  padding: 0 !important;
+  border: 1px solid #e3e1ee !important;
+  background: none !important;
+  text-align: center;
+  vertical-align: middle;
+}
+.evc .evc-c-table th {
+  padding: .6em 0 !important;
+  font-size: .85em;
+  font-weight: 700;
+  color: var(--evc-text);
+  background: #fff !important;
+}
+.evc .evc-c-table td.evc-c-empty { background: #fff !important; }
+
+.evc .evc-c-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  min-height: 3em;
+  margin: 0;
+  padding: 6px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font: inherit;
+  color: var(--evc-text);
+  cursor: default;
+}
+.evc .evc-c-day.evc-has { cursor: pointer; }
+.evc .evc-c-day.evc-has:hover,
+.evc .evc-c-day.evc-has:focus-visible { background: #f4f3fa; outline: none; }
+.evc .evc-c-day.evc-has:focus-visible { box-shadow: inset 0 0 0 2px var(--evc-accent); }
+.evc .evc-c-day.evc-we .evc-c-num { color: var(--evc-accent); }
+.evc .evc-c-day.evc-today { background: #f1f1f1; }
+.evc .evc-c-num { line-height: 1.2; }
+.evc .evc-dots { display: flex; justify-content: center; gap: 3px; min-height: 7px; }
+.evc .evc-dot { display: block; width: 7px; height: 7px; border-radius: 50%; }
+
+/* =====================================================================
+   Modal (appended to <body>, so it is scoped under .evc-overlay)
+   ===================================================================== */
+.evc-overlay {
+  --evc-text: #4a4668;
+  --evc-muted: #8883ad;
+  --evc-accent: #f51b50;
+  --evc-radius: 18px;
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(30, 27, 52, .6);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--evc-text);
+}
+.evc-overlay[hidden] { display: none !important; }
+.evc-overlay, .evc-overlay *, .evc-overlay *::before, .evc-overlay *::after { box-sizing: border-box; }
+
+.evc-overlay .evc-modal {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--evc-radius);
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .35);
+  overflow: auto;
+  outline: none;
+}
+.evc-overlay .evc-close {
+  position: absolute;
+  top: 10px; right: 10px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, .94) !important;
+  color: #333 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .25) !important;
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.evc-overlay .evc-close:hover { background: #fff !important; }
+
+.evc-overlay .evc-m-img {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #e9e8f5;
+}
+.evc-overlay .evc-m-img img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  object-fit: cover;
+}
+.evc-overlay .evc-noimg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: auto;
+  height: 110px;
+  background: var(--evc-color, #6c6ce5);
+}
+.evc-overlay .evc-noimg::before {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(0, 0, 0, .22));
+}
+.evc-overlay .evc-noimg .evc-ic {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  color: #fff;
+  opacity: .9;
+  stroke-width: 1.4;
+}
+
+.evc-overlay .evc-m-body { padding: 22px 24px 28px; }
+.evc-overlay .evc-m-title {
+  margin: 0 0 .6em !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-family: inherit;
+  font-size: 1.4em;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--evc-text);
+}
+.evc-overlay .evc-m-event .evc-m-title::before {
+  content: "";
+  display: inline-block;
+  width: .5em;
+  height: .5em;
+  margin-right: .5em;
+  border-radius: 50%;
+  background: var(--evc-color, #6c6ce5);
+  vertical-align: .08em;
+}
+.evc-overlay .evc-m-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: .55em;
+  margin: .3em 0;
+  color: var(--evc-muted);
+}
+.evc-overlay .evc-m-meta .evc-ic { flex: none; width: 16px; height: 16px; margin-top: .25em; }
+.evc-overlay .evc-m-meta span { min-width: 0; overflow-wrap: anywhere; }
+.evc-overlay .evc-m-desc {
+  margin: 1.1em 0 0;
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.evc-overlay .evc-m-link {
+  display: inline-block;
+  margin-top: 1.3em;
+  padding: .6em 1.2em;
+  border-radius: 8px;
+  background: var(--evc-accent);
+  color: #fff !important;
+  font-weight: 600;
+  text-decoration: none !important;
+}
+.evc-overlay .evc-m-link:hover { background: #d6103f; }
+.evc-overlay .evc-m-back {
+  margin: 0 0 .8em;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  color: var(--evc-accent) !important;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Day list (compact calendar, several events on one day) */
+.evc-overlay .evc-m-daytitle { padding-right: 2.2em !important; }
+.evc-overlay .evc-m-list { margin: 0; padding: 0; list-style: none; }
+.evc-overlay .evc-m-list li { margin: 0; padding: 0; list-style: none; }
+.evc-overlay .evc-m-item {
+  display: flex;
+  align-items: center;
+  gap: .75em;
+  width: 100%;
+  margin: .4em 0;
+  padding: .75em .9em;
+  border: 1px solid #e3e1ee;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: none;
+  font: inherit;
+  color: var(--evc-text);
+  text-align: left;
+  cursor: pointer;
+}
+.evc-overlay .evc-m-item:hover { background: #f4f3fa; }
+.evc-overlay .evc-m-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+.evc-overlay .evc-m-itemtext { display: flex; flex-direction: column; min-width: 0; }
+.evc-overlay .evc-m-itemtext small { color: var(--evc-muted); }
+
+@media (max-width: 480px) {
+  .evc-overlay { padding: 8px; }
+  .evc-overlay .evc-m-body { padding: 18px 18px 24px; }
+}
