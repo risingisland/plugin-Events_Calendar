@@ -634,3 +634,112 @@
   .evc-overlay { padding: 8px; }
   .evc-overlay .evc-m-body { padding: 18px 18px 24px; }
 }
+
+/* =====================================================================
+   Category tag, filter buttons, mini-list
+   ===================================================================== */
+.evc .evc-tag,
+.evc-overlay .evc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: .4em;
+  margin: 0 0 .55em;
+  padding: .15em .7em;
+  border-radius: 999px;
+  background: #f1f0f8;
+  color: var(--evc-text);
+  font-size: .8em;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.evc .evc-tag::before,
+.evc-overlay .evc-tag::before {
+  content: "";
+  flex: none;
+  width: .6em;
+  height: .6em;
+  border-radius: 50%;
+  background: var(--evc-tag, #6c6ce5);
+}
+
+/* Category buttons above the month calendar (filter="1") */
+.evc-calendar .evc-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 24px 0;
+}
+.evc .evc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .45em;
+  margin: 0 !important;
+  padding: .3em .9em !important;
+  border: 1px solid #e3e1ee !important;
+  border-radius: 999px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  color: var(--evc-text) !important;
+  font: inherit;
+  font-size: .88em;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.evc .evc-chip:hover { background: #f4f3fa !important; }
+.evc .evc-chip.is-active {
+  background: var(--evc-text) !important;
+  border-color: var(--evc-text) !important;
+  color: #fff !important;
+}
+.evc .evc-chip-dot { display: block; width: .6em; height: .6em; border-radius: 50%; }
+
+/* Mini-list for sidebars: colour dot, title, short date */
+.evc.evc-mini {
+  display: block;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+.evc.evc-mini > li {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+.evc .evc-mini-item {
+  display: flex;
+  align-items: flex-start;
+  gap: .7em;
+  padding: .65em .25em !important;
+  border-bottom: 1px solid #e3e1ee;
+  cursor: pointer;
+}
+.evc .evc-mini-item:last-child { border-bottom: 0; }
+.evc .evc-mini-item:focus-visible { outline: 2px solid var(--evc-accent); outline-offset: 1px; border-radius: 6px; }
+.evc .evc-mini-dot {
+  flex: none;
+  width: .7em;
+  height: .7em;
+  margin-top: .5em;
+  border-radius: 50%;
+  background: var(--evc-color, #6c6ce5);
+}
+.evc .evc-mini-text { display: flex; flex-direction: column; min-width: 0; }
+.evc .evc-mini-title { font-weight: 600; line-height: 1.35; color: var(--evc-text); overflow-wrap: anywhere; }
+.evc .evc-mini-item:hover .evc-mini-title { color: var(--evc-accent); }
+.evc .evc-mini-date { font-size: .87em; line-height: 1.4; color: var(--evc-muted); }
+.evc .evc-mini-empty { color: var(--evc-muted); }
+
+@media (max-width: 560px) {
+  .evc-calendar .evc-filter { padding: 12px 14px 0; }
+}
+
+/* Compact calendar shown inside the month calendar in a narrow area */
+.evc .evc-mount[hidden],
+.evc .evc-compact-embed[hidden] { display: none !important; }
+.evc .evc-compact-embed {
+  background: none;
+  box-shadow: none;
+  font-size: calc(var(--evc-font-size) * .93);
+}

@@ -7,6 +7,7 @@ if (!defined('IN_GS')) { die('you cannot load this page directly.'); }
 define('EC_DATA_DIR',      GSDATAOTHERPATH . 'events/');
 define('EC_EVENTS_FILE',   EC_DATA_DIR . 'events.json');
 define('EC_SETTINGS_FILE', EC_DATA_DIR . 'settings.json');
+define('EC_CATEGORIES_FILE', EC_DATA_DIR . 'categories.json');
 define('EC_LOCK_FILE',     EC_DATA_DIR . '.lock');
 
 /* ------------------------------------------------------------------
@@ -94,24 +95,34 @@ function ec_default_settings() {
         'lang'          => 'en',       // en | es
         'time_format'   => '12',       // 12 | 24
         'default_color' => '#6c6ce5',
+        'mobile_mode'   => 'list',     // what the month calendar becomes in a narrow area: list | compact | grid
+        'breakpoint'    => 560,        // px, measured on the calendar's own container
     );
 }
 
-function ec_get_settings() {
-    $saved = ec_read_raw(EC_SETTINGS_FILE);
-    return array_merge(ec_default_settings(), is_array($saved) ? $saved : array());
+function ec_get_settings($reload = false) {
+    static $cache = null;
+    if ($cache === null || $reload) {
+        $saved = ec_read_raw(EC_SETTINGS_FILE);
+        $cache = array_merge(ec_default_settings(), is_array($saved) ? $saved : array());
+    }
+    return $cache;
 }
 
 function ec_save_settings($in) {
     $s = ec_default_settings();
     $s['first_day']     = (isset($in['first_day']) && (string)$in['first_day'] === '0') ? 0 : 1;
-    $s['lang']          = (isset($in['lang']) && $in['lang'] === 'es') ? 'es' : 'en';
+    $s['lang']          = (isset($in['lang']) && array_key_exists($in['lang'], ec_languages())) ? $in['lang'] : 'en';
     $s['time_format']   = (isset($in['time_format']) && $in['time_format'] === '24') ? '24' : '12';
     $s['default_color'] = (isset($in['default_color']) && ec_valid_color($in['default_color']))
                           ? strtolower($in['default_color']) : $s['default_color'];
+    $s['mobile_mode']   = (isset($in['mobile_mode']) && in_array($in['mobile_mode'], array('list', 'compact', 'grid'), true))
+                          ? $in['mobile_mode'] : 'list';
+    $s['breakpoint']    = isset($in['breakpoint']) ? max(280, min(1400, (int)$in['breakpoint'])) : 560;
     $h = ec_lock();
     $ok = ec_write_raw(EC_SETTINGS_FILE, $s);
     ec_unlock($h);
+    ec_get_settings(true);
     return $ok;
 }
 
@@ -239,6 +250,7 @@ function ec_sanitize_event($in, $id = '') {
         'image'       => '',
         'color'       => $settings['default_color'],
         'url'         => '',
+        'category'    => '',
         'status'      => (isset($in['status']) && $in['status'] === 'draft') ? 'draft' : 'published',
     );
 
@@ -248,19 +260,19 @@ function ec_sanitize_event($in, $id = '') {
         $ev['description'] = ec_substr(trim($d), 0, 5000);
     }
 
-    if ($ev['title'] === '') { $errors[] = 'Title is required.'; }
+    if ($ev['title'] === '') { $errors[] = ec_t('e_title_required'); }
 
     if (!ec_valid_date($ev['date_from'])) {
-        $errors[] = 'Start date is required.';
+        $errors[] = ec_t('e_start_required');
         $ev['date_from'] = '';
     }
     if ($ev['date_to'] === '' && $ev['date_from'] !== '') { $ev['date_to'] = $ev['date_from']; }
     if ($ev['date_to'] !== '' && !ec_valid_date($ev['date_to'])) {
-        $errors[] = 'End date is not valid.';
+        $errors[] = ec_t('e_end_invalid');
         $ev['date_to'] = $ev['date_from'];
     }
     if ($ev['date_from'] !== '' && $ev['date_to'] !== '' && $ev['date_to'] < $ev['date_from']) {
-        $errors[] = 'End date cannot be before the start date.';
+        $errors[] = ec_t('e_end_before_start');
     }
 
     if ($ev['all_day']) {
@@ -268,19 +280,19 @@ function ec_sanitize_event($in, $id = '') {
         $ev['time_to']   = '';
     } else {
         if ($ev['time_from'] !== '' && !ec_valid_time($ev['time_from'])) {
-            $errors[] = 'Start time is not valid.';
+            $errors[] = ec_t('e_start_time_invalid');
             $ev['time_from'] = '';
         }
         if ($ev['time_to'] !== '' && !ec_valid_time($ev['time_to'])) {
-            $errors[] = 'End time is not valid.';
+            $errors[] = ec_t('e_end_time_invalid');
             $ev['time_to'] = '';
         }
         if ($ev['time_to'] !== '' && $ev['time_from'] === '') {
-            $errors[] = 'An end time needs a start time.';
+            $errors[] = ec_t('e_end_needs_start');
         }
         if ($ev['date_from'] !== '' && $ev['date_from'] === $ev['date_to']
             && $ev['time_from'] !== '' && $ev['time_to'] !== '' && $ev['time_to'] < $ev['time_from']) {
-            $errors[] = 'End time cannot be before the start time on a single-day event.';
+            $errors[] = ec_t('e_end_time_before');
         }
     }
 
@@ -288,8 +300,13 @@ function ec_sanitize_event($in, $id = '') {
 
     if (!empty($in['image'])) {
         $img = ec_clean_image_path($in['image']);
-        if ($img === '') { $errors[] = 'The selected image was not found in the uploads folder.'; }
+        if ($img === '') { $errors[] = ec_t('e_image_missing'); }
         $ev['image'] = $img;
+    }
+
+    if (!empty($in['category'])) {
+        $cid = strtolower(trim((string)$in['category']));
+        if (ec_get_category($cid) !== null) { $ev['category'] = $cid; }   // unknown ids are ignored
     }
 
     if (!empty($in['url'])) {
@@ -297,9 +314,101 @@ function ec_sanitize_event($in, $id = '') {
         if (filter_var($u, FILTER_VALIDATE_URL) && preg_match('#^https?://#i', $u)) {
             $ev['url'] = $u;
         } else {
-            $errors[] = 'The link must be a full http:// or https:// address.';
+            $errors[] = ec_t('e_link_invalid');
         }
     }
 
     return array($ev, $errors);
+}
+
+
+/* ------------------------------------------------------------------
+ * Categories: array of array('id' => slug, 'name' => ..., 'color' => '#rrggbb')
+ * ---------------------------------------------------------------- */
+function ec_slugify($s) {
+    $s = (string)$s;
+    if (function_exists('iconv')) {
+        $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+        if ($t !== false && $t !== '') { $s = $t; }
+    }
+    $s = strtolower($s);
+    $s = preg_replace('/[^a-z0-9]+/', '-', $s);
+    return substr(trim($s, '-'), 0, 40);
+}
+
+function ec_get_categories() {
+    $d = ec_read_raw(EC_CATEGORIES_FILE);
+    return is_array($d) ? array_values($d) : array();
+}
+
+function ec_get_category($id) {
+    foreach (ec_get_categories() as $c) {
+        if (isset($c['id']) && $c['id'] === $id) { return $c; }
+    }
+    return null;
+}
+
+/** Validate and save a category. Returns array($category, $errors). */
+function ec_save_category($in, $id = '') {
+    $settings = ec_get_settings();
+    $name  = ec_clean_text(isset($in['name']) ? $in['name'] : '', 60);
+    $color = (isset($in['color']) && ec_valid_color($in['color'])) ? strtolower($in['color']) : $settings['default_color'];
+    $cat   = array('id' => $id, 'name' => $name, 'color' => $color);
+    $errors = array();
+
+    if ($name === '') { $errors[] = ec_t('e_cat_name'); return array($cat, $errors); }
+
+    $h = ec_lock();
+    $cats = ec_get_categories();
+
+    if ($id === '' ) {
+        $base = ec_slugify($name);
+        if ($base === '') { $base = 'category'; }
+        $slug = $base;
+        $n = 2;
+        $taken = array();
+        foreach ($cats as $c) { $taken[$c['id']] = true; }
+        while (isset($taken[$slug])) { $slug = $base . '-' . $n; $n++; }
+        $cat['id'] = $slug;
+        $cats[] = $cat;
+    } else {
+        $found = false;
+        foreach ($cats as $i => $c) {
+            if ($c['id'] === $id) { $cats[$i] = $cat; $found = true; break; }
+        }
+        if (!$found) { $cats[] = $cat; }
+    }
+
+    if (!ec_write_raw(EC_CATEGORIES_FILE, $cats)) { $errors[] = ec_t('n_cat_failed'); }
+    ec_unlock($h);
+    return array($cat, $errors);
+}
+
+/** Delete a category and clear it from the events that used it, in one locked operation. */
+function ec_delete_category($id) {
+    $h = ec_lock();
+    $cats = array();
+    foreach (ec_get_categories() as $c) {
+        if ($c['id'] !== $id) { $cats[] = $c; }
+    }
+    $ok = ec_write_raw(EC_CATEGORIES_FILE, $cats);
+
+    $events  = ec_get_events();
+    $changed = false;
+    foreach ($events as $i => $e) {
+        if (isset($e['category']) && $e['category'] === $id) { $events[$i]['category'] = ''; $changed = true; }
+    }
+    if ($changed) { $ok = ec_write_raw(EC_EVENTS_FILE, $events) && $ok; }
+    ec_unlock($h);
+    return $ok;
+}
+
+/** Number of events per category id. */
+function ec_category_counts() {
+    $n = array();
+    foreach (ec_get_events() as $e) {
+        $c = isset($e['category']) ? $e['category'] : '';
+        if ($c !== '') { $n[$c] = isset($n[$c]) ? $n[$c] + 1 : 1; }
+    }
+    return $n;
 }

@@ -9,8 +9,18 @@
     nonce: form.getAttribute('data-nonce'),
     uploads: form.getAttribute('data-uploads')
   };
+  var LABELS = {};
+  try { LABELS = JSON.parse(form.getAttribute('data-labels') || '{}'); } catch (e) {}
+  var CAT_COLORS = {};
+  try { CAT_COLORS = JSON.parse(form.getAttribute('data-catcolors') || '{}'); } catch (e) {}
 
   function $(id) { return document.getElementById(id); }
+  function t(key, fallback) { return LABELS[key] || fallback || key; }
+  function h(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
 
   /* ---------------- Colour swatches ---------------- */
   var color = $('ec_color');
@@ -22,14 +32,25 @@
       swatches[i].classList.toggle('is-on', on);
     }
   }
+  // For existing events the colour counts as already chosen; for new ones it follows the category
+  var colorTouched = form.getAttribute('data-new') !== '1';
   for (var i = 0; i < swatches.length; i++) {
     swatches[i].addEventListener('click', function () {
       color.value = this.getAttribute('data-color');
+      colorTouched = true;
       markSwatch();
     });
   }
-  color.addEventListener('input', markSwatch);
+  color.addEventListener('input', function () { colorTouched = true; markSwatch(); });
   markSwatch();
+
+  var catSelect = $('ec_category');
+  if (catSelect) {
+    catSelect.addEventListener('change', function () {
+      var c = CAT_COLORS[catSelect.value];
+      if (c && !colorTouched) { color.value = c; markSwatch(); }
+    });
+  }
 
   /* ---------------- All-day toggle ---------------- */
   var allDay = $('ec_all_day');
@@ -67,7 +88,7 @@
       imgPreview.appendChild(im);
     } else {
       var sp = document.createElement('span');
-      sp.textContent = 'No image';
+      sp.textContent = t('no_image', 'No image');
       imgPreview.appendChild(sp);
     }
     imgName.textContent = path || '';
@@ -86,8 +107,8 @@
     var opts = { credentials: 'same-origin' };
     if (body) { opts.method = 'POST'; opts.body = body; }
     return fetch(url, opts).then(function (r) {
-      return r.json().catch(function () { return { error: 'Unexpected response from the server.' }; });
-    }).catch(function () { return { error: 'Network error.' }; });
+      return r.json().catch(function () { return { error: t('img_bad_response', 'Unexpected response from the server.') }; });
+    }).catch(function () { return { error: t('img_network', 'Network error.') }; });
   }
 
   function openBrowser(startDir, onPick, trigger) {
@@ -96,24 +117,24 @@
     var overlay = document.createElement('div');
     overlay.className = 'ec-modal-overlay';
     overlay.innerHTML =
-      '<div class="ec-modal" role="dialog" aria-modal="true" aria-label="Image library" tabindex="-1">' +
-        '<div class="ec-modal-head"><strong>Image library</strong>' +
-          '<button type="button" class="ec-x" aria-label="Close">&times;</button></div>' +
+      '<div class="ec-modal" role="dialog" aria-modal="true" aria-label="' + h(t('img_library', 'Image library')) + '" tabindex="-1">' +
+        '<div class="ec-modal-head"><strong>' + h(t('img_library', 'Image library')) + '</strong>' +
+          '<button type="button" class="ec-x" aria-label="' + h(t('close', 'Close')) + '">&times;</button></div>' +
         '<div class="ec-modal-bar">' +
           '<nav class="ec-crumbs" aria-label="Folder"></nav>' +
           '<span class="ec-bar-actions">' +
-            '<button type="button" class="ec-btn ec-newfolder">New folder</button> ' +
-            '<button type="button" class="ec-btn ec-upload-btn">Upload images</button>' +
+            '<button type="button" class="ec-btn ec-newfolder">' + h(t('img_new_folder', 'New folder')) + '</button> ' +
+            '<button type="button" class="ec-btn ec-upload-btn">' + h(t('img_upload', 'Upload images')) + '</button>' +
             '<input type="file" class="ec-file" multiple hidden accept="image/jpeg,image/png,image/gif,image/webp">' +
           '</span>' +
         '</div>' +
         '<div class="ec-modal-body">' +
           '<div class="ec-files"></div>' +
-          '<div class="ec-dropmsg">Drop images to upload to this folder</div>' +
+          '<div class="ec-dropmsg">' + h(t('img_drop', 'Drop images to upload to this folder')) + '</div>' +
         '</div>' +
         '<div class="ec-modal-foot"><span class="ec-status" role="status" aria-live="polite"></span>' +
-          '<span><button type="button" class="ec-btn ec-cancel">Cancel</button> ' +
-          '<button type="button" class="ec-btn ec-btn-primary ec-choose" disabled>Use selected image</button></span>' +
+          '<span><button type="button" class="ec-btn ec-cancel">' + h(t('cancel', 'Cancel')) + '</button> ' +
+          '<button type="button" class="ec-btn ec-btn-primary ec-choose" disabled>' + h(t('img_use', 'Use selected image')) + '</button></span>' +
         '</div>' +
       '</div>';
     document.body.appendChild(overlay);
@@ -169,7 +190,7 @@
           crumbs.appendChild(document.createTextNode(' / '));
         }
       }
-      add('uploads', '', parts.length === 0);
+      add(t('img_root', 'uploads'), '', parts.length === 0);
       parts.forEach(function (p, i) {
         acc += (acc ? '/' : '') + p;
         add(p, acc, i === parts.length - 1);
@@ -194,7 +215,7 @@
       select(null, null);
 
       if (data.parent !== null) {
-        var up = tile('ec-folder', '.. (up)');
+        var up = tile('ec-folder', t('img_up', '.. (up)'));
         up.addEventListener('click', function () { load(data.parent); });
         filesEl.appendChild(up);
       }
@@ -218,14 +239,14 @@
       if (!data.folders.length && !data.images.length) {
         var p = document.createElement('p');
         p.className = 'ec-empty';
-        p.textContent = 'This folder has no images yet. Upload some, or drop them here.';
+        p.textContent = t('img_empty', 'This folder has no images yet.');
         filesEl.appendChild(p);
       }
-      if (data.truncated) { say('Showing the first 500 items of this folder.'); }
+      if (data.truncated) { say(t('img_truncated', 'Showing the first 500 items of this folder.')); }
     }
 
     function load(dir, selectPath) {
-      say('Loading...');
+      say(t('img_loading', 'Loading...'));
       api('list', '&dir=' + encodeURIComponent(dir || '')).then(function (data) {
         if (data.error) { say(data.error); return; }
         say('');
@@ -239,13 +260,13 @@
       for (var i = 0; i < fileList.length; i++) {
         if (/^image\//.test(fileList[i].type)) { fd.append('files[]', fileList[i]); n++; }
       }
-      if (!n) { say('Please choose image files (JPG, PNG, GIF or WebP).'); return; }
-      say('Uploading ' + n + (n === 1 ? ' image...' : ' images...'));
+      if (!n) { say(t('img_pick_files', 'Please choose image files.')); return; }
+      say(t('img_uploading', 'Uploading...'));
       api('upload', '&dir=' + encodeURIComponent(state.dir), fd).then(function (data) {
         if (data.error) { say(data.error); return; }
         var okFiles = data.results.filter(function (r) { return r.ok; });
         var bad = data.results.filter(function (r) { return !r.ok; });
-        var msg = okFiles.length + ' uploaded.';
+        var msg = t('img_uploaded', '%d uploaded.').replace('%d', okFiles.length);
         if (bad.length) { msg += ' ' + bad.map(function (r) { return r.name + ': ' + r.error; }).join(' '); }
         load(state.dir, okFiles.length ? okFiles[0].path : null);
         setTimeout(function () { say(msg); }, 300);
@@ -264,7 +285,7 @@
     });
 
     overlay.querySelector('.ec-newfolder').addEventListener('click', function () {
-      var name = window.prompt('New folder name (letters, numbers, - and _):');
+      var name = window.prompt(t('img_prompt', 'New folder name:'));
       if (!name) { return; }
       api('mkdir', '&dir=' + encodeURIComponent(state.dir) + '&name=' + encodeURIComponent(name), new FormData())
         .then(function (data) {

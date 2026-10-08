@@ -24,13 +24,13 @@ function ec_json($data, $code = 200) {
 function ec_media_require_login() {
     if (function_exists('is_logged_in')) {
         if (is_logged_in()) { return; }
-        ec_json(array('error' => 'You are not logged in.'), 403);
+        ec_json(array('error' => ec_t('m_not_logged_in')), 403);
     }
     if (function_exists('login_cookie_check')) {   // older GetSimple: redirects when not logged in
         login_cookie_check();
         return;
     }
-    ec_json(array('error' => 'Could not verify your login.'), 403);
+    ec_json(array('error' => ec_t('m_not_logged_in')), 403);
 }
 
 function ec_media_ajax() {
@@ -38,7 +38,7 @@ function ec_media_ajax() {
 
     $nonce = isset($_GET['nonce']) ? (string)$_GET['nonce'] : '';
     if (!check_nonce($nonce, 'ec_ajax', 'load.php')) {
-        ec_json(array('error' => 'Security check failed. Reload the page and try again.'), 403);
+        ec_json(array('error' => ec_t('m_security')), 403);
     }
 
     $op  = isset($_GET['op']) ? (string)$_GET['op'] : '';
@@ -48,14 +48,14 @@ function ec_media_ajax() {
         case 'list':
             ec_json(ec_media_list($dir));
         case 'upload':
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') { ec_json(array('error' => 'POST required.'), 405); }
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') { ec_json(array('error' => ec_t('m_post_required')), 405); }
             ec_json(ec_media_upload($dir));
         case 'mkdir':
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') { ec_json(array('error' => 'POST required.'), 405); }
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') { ec_json(array('error' => ec_t('m_post_required')), 405); }
             $name = isset($_GET['name']) ? (string)$_GET['name'] : '';
             ec_json(ec_media_mkdir($dir, $name));
         default:
-            ec_json(array('error' => 'Unknown operation.'), 400);
+            ec_json(array('error' => ec_t('m_unknown_op')), 400);
     }
 }
 
@@ -64,7 +64,7 @@ function ec_media_ajax() {
 function ec_media_list($dirRel) {
     $rel = ec_safe_rel($dirRel);
     $abs = ($rel === false) ? false : ec_resolve_upload($rel);
-    if ($abs === false || !is_dir($abs)) { return array('error' => 'Folder not found.'); }
+    if ($abs === false || !is_dir($abs)) { return array('error' => ec_t('m_no_folder')); }
 
     $folders = array();
     $images  = array();
@@ -72,7 +72,7 @@ function ec_media_list($dirRel) {
     $prefix  = ($rel === '') ? '' : $rel . '/';
 
     $items = @scandir($abs);
-    if ($items === false) { return array('error' => 'Could not read the folder.'); }
+    if ($items === false) { return array('error' => ec_t('m_cannot_read')); }
 
     foreach ($items as $name) {
         if ($name === '.' || $name === '..' || $name[0] === '.') { continue; }
@@ -126,23 +126,23 @@ function ec_media_ext_for_type($type) {
 function ec_media_upload_error($code) {
     switch ($code) {
         case UPLOAD_ERR_INI_SIZE:
-        case UPLOAD_ERR_FORM_SIZE:  return 'File is larger than the server allows.';
-        case UPLOAD_ERR_PARTIAL:    return 'The upload was interrupted.';
-        case UPLOAD_ERR_NO_FILE:    return 'No file was uploaded.';
-        case UPLOAD_ERR_NO_TMP_DIR: return 'Server has no temporary folder.';
-        case UPLOAD_ERR_CANT_WRITE: return 'Server could not write the file.';
-        default:                    return 'Upload failed.';
+        case UPLOAD_ERR_FORM_SIZE:  return ec_t('m_too_large_srv');
+        case UPLOAD_ERR_PARTIAL:    return ec_t('m_interrupted');
+        case UPLOAD_ERR_NO_FILE:    return ec_t('m_no_file');
+        case UPLOAD_ERR_NO_TMP_DIR: return ec_t('m_no_tmp');
+        case UPLOAD_ERR_CANT_WRITE: return ec_t('m_cant_write');
+        default:                    return ec_t('m_failed');
     }
 }
 
 function ec_media_upload($dirRel) {
     $rel = ec_safe_rel($dirRel);
     $abs = ($rel === false) ? false : ec_resolve_upload($rel);
-    if ($abs === false || !is_dir($abs)) { return array('error' => 'Folder not found.'); }
-    if (!is_writable($abs)) { return array('error' => 'The folder is not writable. Check its permissions.'); }
+    if ($abs === false || !is_dir($abs)) { return array('error' => ec_t('m_no_folder')); }
+    if (!is_writable($abs)) { return array('error' => ec_t('m_not_writable')); }
 
     if (empty($_FILES['files'])) {
-        return array('error' => 'No files received. The upload may exceed the server limits (post_max_size).');
+        return array('error' => ec_t('m_no_files'));
     }
 
     $f      = $_FILES['files'];
@@ -158,12 +158,12 @@ function ec_media_upload($dirRel) {
             $out[] = $res; continue;
         }
         if ($f['size'][$i] > EC_MAX_UPLOAD_BYTES) {
-            $res['error'] = 'File is larger than ' . (EC_MAX_UPLOAD_BYTES / 1048576) . ' MB.';
+            $res['error'] = ec_tf('m_too_big', EC_MAX_UPLOAD_BYTES / 1048576);
             $out[] = $res; continue;
         }
         $tmp = $f['tmp_name'][$i];
         if (!is_uploaded_file($tmp)) {
-            $res['error'] = 'Invalid upload.';
+            $res['error'] = ec_t('m_invalid');
             $out[] = $res; continue;
         }
 
@@ -171,7 +171,7 @@ function ec_media_upload($dirRel) {
         $info = @getimagesize($tmp);
         $ext  = $info ? ec_media_ext_for_type($info[2]) : '';
         if ($ext === '') {
-            $res['error'] = 'Not a supported image (JPG, PNG, GIF or WebP).';
+            $res['error'] = ec_t('m_unsupported');
             $out[] = $res; continue;
         }
 
@@ -185,7 +185,7 @@ function ec_media_upload($dirRel) {
         }
 
         if (!move_uploaded_file($tmp, $abs . DIRECTORY_SEPARATOR . $name)) {
-            $res['error'] = 'Could not save the file.';
+            $res['error'] = ec_t('m_save_failed');
             $out[] = $res; continue;
         }
         @chmod($abs . DIRECTORY_SEPARATOR . $name, 0644);
@@ -202,14 +202,14 @@ function ec_media_upload($dirRel) {
 function ec_media_mkdir($parentRel, $name) {
     $rel = ec_safe_rel($parentRel);
     $abs = ($rel === false) ? false : ec_resolve_upload($rel);
-    if ($abs === false || !is_dir($abs)) { return array('error' => 'Folder not found.'); }
+    if ($abs === false || !is_dir($abs)) { return array('error' => ec_t('m_no_folder')); }
 
     $slug = ec_media_slug($name, false);
-    if ($slug === '') { return array('error' => 'Please enter a folder name (letters, numbers, - and _).'); }
+    if ($slug === '') { return array('error' => ec_t('m_folder_name')); }
 
     $target = $abs . DIRECTORY_SEPARATOR . $slug;
-    if (file_exists($target)) { return array('error' => 'A folder with that name already exists.'); }
-    if (!@mkdir($target, 0755)) { return array('error' => 'Could not create the folder.'); }
+    if (file_exists($target)) { return array('error' => ec_t('m_folder_exists')); }
+    if (!@mkdir($target, 0755)) { return array('error' => ec_t('m_mkdir_failed')); }
 
     return array('ok' => true, 'path' => ($rel === '' ? '' : $rel . '/') . $slug);
 }

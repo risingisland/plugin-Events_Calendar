@@ -20,6 +20,7 @@
   var L = S.labels || {};
   var LOCALE = S.locale || 'en';
   var FIRST_DAY = (S.firstDay === 0) ? 0 : 1;
+  var CATEGORIES = S.categories || [];
 
   EVENTS.sort(function (a, b) {
     return a.start < b.start ? -1 : a.start > b.start ? 1 : a.title.localeCompare(b.title);
@@ -73,20 +74,33 @@
     return lum > 0.62 ? '#2b2840' : '#fff';
   }
 
-  /** Map of YYYY-MM-DD -> events that cover that day. */
-  var DAYMAP = null;
-  function dayMap() {
-    if (DAYMAP) { return DAYMAP; }
-    DAYMAP = {};
-    EVENTS.forEach(function (e) {
+  /** Map of YYYY-MM-DD -> events (from `list`) that cover that day. */
+  function dayMap(list) {
+    var map = {};
+    list.forEach(function (e) {
       var d = parse(e.start), end = parse(e.end), guard = 0;
       while (d <= end && guard++ < 400) {
         var k = ymd(d);
-        (DAYMAP[k] = DAYMAP[k] || []).push(e);
+        (map[k] = map[k] || []).push(e);
         d = addDays(d, 1);
       }
     });
-    return DAYMAP;
+    return map;
+  }
+
+  /** Events a container may show: its data-evc-cat categories, plus an optional chosen category. */
+  function eventsFor(root, chosen) {
+    var attr = root.getAttribute('data-evc-cat');
+    var allowed = null;
+    if (attr) {
+      allowed = {};
+      attr.split(',').forEach(function (c) { c = c.replace(/^\s+|\s+$/g, ''); if (c) { allowed[c] = true; } });
+    }
+    return EVENTS.filter(function (e) {
+      if (allowed && !allowed[e.category]) { return false; }
+      if (chosen && e.category !== chosen) { return false; }
+      return true;
+    });
   }
 
   function activate(node, fn) {
@@ -199,6 +213,11 @@
         back.addEventListener('click', backFn);
         b.appendChild(back);
       }
+      if (ev.categoryName) {
+        var tag = el('span', 'evc-tag', ev.categoryName);
+        if (ev.categoryColor) { tag.style.setProperty('--evc-tag', ev.categoryColor); }
+        b.appendChild(tag);
+      }
       var h = el('h3', 'evc-m-title', ev.title);
       h.id = 'evc-m-title';
       dialog.setAttribute('aria-labelledby', 'evc-m-title');
@@ -264,7 +283,7 @@
    * List / grid cards
    * ---------------------------------------------------------------- */
   function initCards() {
-    each(document.querySelectorAll('.evc-card[data-evc-id]'), function (card) {
+    each(document.querySelectorAll('.evc-card[data-evc-id], .evc-mini-item[data-evc-id]'), function (card) {
       if (card.__evcInit) { return; }
       var ev = BY_ID[card.getAttribute('data-evc-id')];
       if (!ev) { return; }
@@ -276,13 +295,8 @@
   /* ------------------------------------------------------------------
    * Compact dots calendar (vanilla, built for narrow containers)
    * ---------------------------------------------------------------- */
-  function initCompact(root) {
-    if (root.__evcInit) { return; }
-    root.__evcInit = true;
-    var mount = root.querySelector('.evc-mount');
-    if (!mount) { return; }
-
-    var map = dayMap();
+  function createCompact(mount, list) {
+    var map = dayMap(list);
     var now = new Date();
     var cur = new Date(now.getFullYear(), now.getMonth(), 1, 12);
 
@@ -388,13 +402,19 @@
     }
 
     render();
+    return { setList: function (l) { map = dayMap(l); render(); } };
+  }
+
+  function initCompact(root) {
+    if (root.__evcInit) { return; }
+    root.__evcInit = true;
+    var mount = root.querySelector('.evc-mount');
+    if (mount) { createCompact(mount, eventsFor(root, null)); }
   }
 
   /* ------------------------------------------------------------------
    * Month calendar (EventCalendar library)
    * ---------------------------------------------------------------- */
-  var MOBILE_WIDTH = 560;
-
   function initCalendar(root) {
     if (root.__evcInit) { return; }
     root.__evcInit = true;
@@ -409,24 +429,31 @@
       return;
     }
 
-    var mobileMode = root.getAttribute('data-evc-mobile') === 'grid' ? 'grid' : 'list';
-    function wantedView() {
+    // In a narrow area (below the breakpoint) the calendar becomes a month list or the compact dots calendar
+    var mobileAttr = root.getAttribute('data-evc-mobile');
+    var mobileMode = (mobileAttr === 'grid' || mobileAttr === 'compact') ? mobileAttr : 'list';
+    var breakpoint = parseInt(root.getAttribute('data-evc-breakpoint'), 10) || 560;
+    function wantedMode() {
       var w = root.clientWidth || window.innerWidth;
-      return (mobileMode === 'list' && w < MOBILE_WIDTH) ? 'listMonth' : 'dayGridMonth';
+      if (w >= breakpoint || mobileMode === 'grid') { return 'grid'; }
+      return mobileMode === 'compact' ? 'compact' : 'list';
     }
+    function viewFor(mode) { return mode === 'list' ? 'listMonth' : 'dayGridMonth'; }
 
     // The calendar shows every event as an all-day bar. EventCalendar treats `end` as exclusive.
-    var libEvents = EVENTS.map(function (e) {
-      return {
-        id: e.id,
-        start: e.start,
-        end: ymd(addDays(parse(e.end), 1)),
-        allDay: true,
-        title: e.title,
-        backgroundColor: e.color,
-        textColor: textOn(e.color)
-      };
-    });
+    function libEventsFor(chosen) {
+      return eventsFor(root, chosen).map(function (e) {
+        return {
+          id: e.id,
+          start: e.start,
+          end: ymd(addDays(parse(e.end), 1)),
+          allDay: true,
+          title: e.title,
+          backgroundColor: e.color,
+          textColor: textOn(e.color)
+        };
+      });
+    }
 
     var ec;
     function shiftYear(n) {
@@ -438,11 +465,11 @@
 
     try {
       ec = lib.create(mount, {
-        view: wantedView(),
+        view: viewFor(wantedMode()),
         firstDay: FIRST_DAY,
         locale: LOCALE,
         height: 'auto',
-        events: libEvents,
+        events: libEventsFor(null),
         headerToolbar: { start: 'title', center: '', end: 'prevYear prev today next nextYear' },
         customButtons: {
           prevYear: { text: '\u00AB', click: function () { shiftYear(-1); } },
@@ -489,6 +516,30 @@
       return;
     }
 
+    // Compact calendar that replaces the month grid in a narrow area
+    var compact = null, compactMount = null, currentMode = null;
+    if (mobileMode === 'compact') {
+      compactMount = el('div', 'evc-compact-embed');
+      compactMount.hidden = true;
+      root.insertBefore(compactMount, mount.nextSibling);
+      compact = createCompact(compactMount, eventsFor(root, null));
+    }
+    function applyMode() {
+      var m = wantedMode();
+      if (m === currentMode) { return; }
+      currentMode = m;
+      if (m === 'compact' && compactMount) {
+        mount.hidden = true;
+        compactMount.hidden = false;
+        return;
+      }
+      mount.hidden = false;
+      if (compactMount) { compactMount.hidden = true; }
+      var v = viewFor(m);
+      if (ec.getOption('view') !== v) { ec.setOption('view', v); }
+    }
+    applyMode();
+
     // Label the year buttons for screen readers
     try {
       each(mount.querySelectorAll('.ec-prevYear'), function (b) {
@@ -499,17 +550,50 @@
       });
     } catch (e) {}
 
-    // Switch between month grid and list when the container width changes
-    if (window.ResizeObserver) {
-      var timer;
-      new ResizeObserver(function () {
-        clearTimeout(timer);
-        timer = setTimeout(function () {
-          var v = wantedView();
-          if (ec.getOption('view') !== v) { ec.setOption('view', v); }
-        }, 120);
-      }).observe(root);
+    // Category buttons above the calendar: [events view="calendar" filter="1"]
+    if (root.getAttribute('data-evc-filter') === '1') {
+      var present = {};
+      eventsFor(root, null).forEach(function (e) { if (e.category) { present[e.category] = true; } });
+      var cats = CATEGORIES.filter(function (c) { return present[c.id]; });
+      if (cats.length > 1) {
+        var bar = el('div', 'evc-filter');
+        var chosen = null;
+        var chips = [];
+        var pick = function (id) {
+          chosen = id;
+          chips.forEach(function (c) {
+            var on = c.id === id;
+            c.node.classList.toggle('is-active', on);
+            c.node.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          ec.setOption('events', libEventsFor(chosen));
+          if (compact) { compact.setList(eventsFor(root, chosen)); }
+        };
+        var addChip = function (id, label, color) {
+          var b = el('button', 'evc-chip');
+          b.type = 'button';
+          if (color) {
+            var d = el('span', 'evc-chip-dot');
+            d.style.background = color;
+            b.appendChild(d);
+          }
+          b.appendChild(document.createTextNode(label));
+          b.addEventListener('click', function () { pick(id); });
+          chips.push({ id: id, node: b });
+          bar.appendChild(b);
+        };
+        addChip(null, L.allCategories || 'All', null);
+        cats.forEach(function (c) { addChip(c.id, c.name, c.color); });
+        root.insertBefore(bar, mount);
+        pick(null);
+      }
     }
+
+    // Re-check when the width of the calendar's own container changes
+    var timer;
+    function onSize() { clearTimeout(timer); timer = setTimeout(applyMode, 120); }
+    if (window.ResizeObserver) { new ResizeObserver(onSize).observe(root); }
+    else { window.addEventListener('resize', onSize); }
   }
 
   /* ------------------------------------------------------------------
