@@ -326,10 +326,12 @@ function ec_admin_settings() {
     echo '<input type="hidden" name="nonce" value="' . ec_h(get_nonce('ec_save_settings', 'load.php')) . '">';
 
     echo '<p><label for="ec_lang">' . ec_h(ec_t('s_language')) . '</label><select id="ec_lang" name="lang">';
+    $cur = ($s['lang'] !== '') ? ec_find_lang($s['lang']) : '';
+    echo '<option value=""' . ($cur === '' ? ' selected' : '') . '>' . ec_h(ec_t('s_language_auto')) . '</option>';
     foreach (ec_languages() as $code => $name) {
-        echo '<option value="' . ec_h($code) . '"' . ($s['lang'] === $code ? ' selected' : '') . '>' . ec_h($name) . '</option>';
+        echo '<option value="' . ec_h($code) . '"' . ($cur === $code ? ' selected' : '') . '>' . ec_h($name) . '</option>';
     }
-    echo '</select></p>';
+    echo '</select><small>' . ec_h(ec_t('s_language_hint')) . '</small></p>';
 
     echo '<p><label for="ec_first_day">' . ec_h(ec_t('s_week_start')) . '</label><select id="ec_first_day" name="first_day">'
        . '<option value="1"' . ((int)$s['first_day'] === 1 ? ' selected' : '') . '>' . ec_h(ec_t('monday')) . '</option>'

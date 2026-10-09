@@ -1,13 +1,12 @@
 <?php
-// Español
-return array(
+// Español (es_ES)
+$i18n = [
     '_name'   => 'Español',
-    '_locale' => 'es',
 
-    'months'       => array('enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
-                            'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'),
-    'months_short' => array('ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'),
-    'days'         => array('domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'),
+    'months'       => ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                            'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+    'months_short' => ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+    'days'         => ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
     'date_format'  => '{weekday}, {d} de {month} de {y}',
     'short_date'   => '{d} {mon}',
     'all_day'      => 'Todo el día',
@@ -94,7 +93,7 @@ return array(
     's_week_start'      => 'La semana empieza el',
     'monday'            => 'Lunes',
     'sunday'            => 'Domingo',
-    's_language'        => 'Idioma',
+    's_language'        => 'Idioma del sitio web',
     's_time_format'     => 'Formato de hora',
     't12'               => '12 horas (09:00 am)',
     't24'               => '24 horas (09:00)',
@@ -196,4 +195,6 @@ return array(
     'm_grid'           => 'La cuadrícula del mes, sin cambios',
     's_breakpoint'     => 'Cambiar por debajo de este ancho (px)',
     'h_breakpoint'     => 'Se mide en el ancho del área donde está el calendario, no en la pantalla. Se puede cambiar en cada calendario con mobile="" y breakpoint="".',
-);
+    's_language_auto'  => 'El mismo que el idioma del sitio',
+    's_language_hint'  => 'Las pantallas de administración siempre usan tu idioma de GetSimple.',
+];

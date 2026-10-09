@@ -1,14 +1,14 @@
 <?php
-// English. Copy this file to add a language (e.g. fr.php) and translate the values only.
-return array(
+// English (en_US). To add a language, copy this file to e.g. fr_FR.php and translate the values.
+// Keep '_name' (shown in Settings). Missing keys fall back to English.
+$i18n = [
     '_name'   => 'English',
-    '_locale' => 'en',
 
     /* Dates */
-    'months'       => array('January', 'February', 'March', 'April', 'May', 'June', 'July',
-                            'August', 'September', 'October', 'November', 'December'),
-    'months_short' => array('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'),
-    'days'         => array('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'),
+    'months'       => ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                            'August', 'September', 'October', 'November', 'December'],
+    'months_short' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    'days'         => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
     'date_format'  => '{weekday}, {d} {month}, {y}',   // tokens: {weekday} {d} {month} {y}
     'short_date'   => '{d} {mon}',                     // tokens: {d} {mon}
     'all_day'      => 'All day',
@@ -102,7 +102,7 @@ return array(
     's_week_start'      => 'Week starts on',
     'monday'            => 'Monday',
     'sunday'            => 'Sunday',
-    's_language'        => 'Language',
+    's_language'        => 'Website language',
     's_time_format'     => 'Time format',
     't12'               => '12-hour (09:00 am)',
     't24'               => '24-hour (09:00)',
@@ -207,4 +207,6 @@ return array(
     'm_grid'           => 'The month grid, unchanged',
     's_breakpoint'     => 'Switch below this width (px)',
     'h_breakpoint'     => 'Measured on the width of the area the calendar sits in, not on the screen. Can be overridden per calendar with mobile="" and breakpoint="".',
-);
+    's_language_auto'  => 'Same as the site language',
+    's_language_hint'  => 'The admin screens always use your GetSimple language.',
+];

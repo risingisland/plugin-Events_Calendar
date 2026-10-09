@@ -92,7 +92,7 @@ function ec_write_raw($file, $data) {
 function ec_default_settings() {
     return array(
         'first_day'     => 1,          // 1 = Monday, 0 = Sunday
-        'lang'          => 'en',       // en | es
+        'lang'          => '',         // website language (locale code such as en_US); empty = the site's language
         'time_format'   => '12',       // 12 | 24
         'default_color' => '#6c6ce5',
         'mobile_mode'   => 'list',     // what the month calendar becomes in a narrow area: list | compact | grid
@@ -112,7 +112,7 @@ function ec_get_settings($reload = false) {
 function ec_save_settings($in) {
     $s = ec_default_settings();
     $s['first_day']     = (isset($in['first_day']) && (string)$in['first_day'] === '0') ? 0 : 1;
-    $s['lang']          = (isset($in['lang']) && array_key_exists($in['lang'], ec_languages())) ? $in['lang'] : 'en';
+    $s['lang']          = (isset($in['lang']) && array_key_exists($in['lang'], ec_languages())) ? $in['lang'] : '';
     $s['time_format']   = (isset($in['time_format']) && $in['time_format'] === '24') ? '24' : '12';
     $s['default_color'] = (isset($in['default_color']) && ec_valid_color($in['default_color']))
                           ? strtolower($in['default_color']) : $s['default_color'];

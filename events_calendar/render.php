@@ -49,7 +49,7 @@ function ec_format_time($hm, $fmt) {
 
 /** Human readable date range and time range for one event. */
 function ec_event_when($ev, $settings) {
-    $lang = $settings['lang'];
+    $lang = ec_current_lang();
     $date = ec_format_date($ev['date_from'], $lang);
     if ($ev['date_to'] !== '' && $ev['date_to'] !== $ev['date_from']) {
         $date .= ' - ' . ec_format_date($ev['date_to'], $lang);
@@ -190,7 +190,7 @@ function ec_categories_public() {
 /** One JSON block for every view on the page: published events + labels. */
 function ec_data_script() {
     $settings = ec_get_settings();
-    $lang     = $settings['lang'];
+    $lang     = ec_front_lang();
     $events   = array();
     foreach (ec_get_events() as $ev) {
         if (isset($ev['status']) && $ev['status'] === 'published') {
@@ -201,7 +201,7 @@ function ec_data_script() {
         'events'   => $events,
         'settings' => array(
             'firstDay' => (int)$settings['first_day'],
-            'locale'   => ec_t('_locale', $lang),
+            'locale'   => str_replace('_', '-', $lang),
             'categories' => ec_categories_public(),
             'labels'   => array(
                 'today'     => ec_t('today', $lang),
@@ -351,7 +351,7 @@ function ec_render($atts = array()) {
         // Without JavaScript: a plain list of upcoming events
         $fallback = ec_collect_events(array_merge($a, array('limit' => 20, 'past' => '0', 'from' => '', 'to' => '', 'order' => 'asc')));
         $html .= '<noscript><div class="evc evc-list">';
-        if (!$fallback) { $html .= '<p class="evc-empty">' . ec_h(ec_t('no_events', $settings['lang'])) . '</p>'; }
+        if (!$fallback) { $html .= '<p class="evc-empty">' . ec_h(ec_t('no_events')) . '</p>'; }
         foreach ($fallback as $ev) { $html .= ec_card_html($ev, $settings, $excerpt); }
         $html .= '</div></noscript>';
         $html .= '</div>';
@@ -364,10 +364,10 @@ function ec_render($atts = array()) {
         $events = ec_collect_events($a);
         $html .= '<ul class="evc evc-mini" id="evc-' . $n . '" data-evc-view="mini">';
         if (!$events) {
-            $html .= '<li class="evc-mini-empty">' . ec_h(ec_t('no_events', $settings['lang'])) . '</li>';
+            $html .= '<li class="evc-mini-empty">' . ec_h(ec_t('no_events')) . '</li>';
         }
         foreach ($events as $ev) {
-            $date = ec_format_short_range($ev['date_from'], $ev['date_to'], $settings['lang']);
+            $date = ec_format_short_range($ev['date_from'], $ev['date_to'], ec_current_lang());
             $html .= '<li class="evc-mini-item" data-evc-id="' . ec_h($ev['id']) . '" style="--evc-color:' . ec_h($ev['color']) . '">'
                    . '<span class="evc-mini-dot" aria-hidden="true"></span>'
                    . '<span class="evc-mini-text"><span class="evc-mini-title">' . ec_h($ev['title']) . '</span>'
@@ -384,7 +384,7 @@ function ec_render($atts = array()) {
     $html .= '<div class="evc evc-' . $view . ($view === 'grid' ? ' evc-cols-' . $cols : '')
            . '" id="evc-' . $n . '" data-evc-view="' . $view . '">';
     if (!$events) {
-        $html .= '<p class="evc-empty">' . ec_h(ec_t('no_events', $settings['lang'])) . '</p>';
+        $html .= '<p class="evc-empty">' . ec_h(ec_t('no_events')) . '</p>';
     }
     foreach ($events as $ev) {
         $html .= ec_card_html($ev, $settings, $excerpt);
