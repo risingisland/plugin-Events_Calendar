@@ -580,9 +580,27 @@
 .evc-overlay .evc-m-desc {
   margin: 1.1em 0 0;
   line-height: 1.6;
-  white-space: pre-line;
   overflow-wrap: anywhere;
 }
+/* Formatted description: scoped and explicit so theme rules for p, ul, h3 and so on cannot reach it */
+.evc-overlay .evc-m-desc p,
+.evc-overlay .evc-m-desc div { margin: 0 0 .75em; padding: 0; }
+.evc-overlay .evc-m-desc ul,
+.evc-overlay .evc-m-desc ol { margin: 0 0 .75em; padding: 0 0 0 1.5em; }
+.evc-overlay .evc-m-desc ul { list-style: disc; }
+.evc-overlay .evc-m-desc ol { list-style: decimal; }
+.evc-overlay .evc-m-desc li { margin: 0 0 .25em; padding: 0; list-style: inherit; }
+.evc-overlay .evc-m-desc h3,
+.evc-overlay .evc-m-desc h4 {
+  margin: 1em 0 .4em; padding: 0; border: 0;
+  font-family: inherit; font-weight: 700; line-height: 1.3; letter-spacing: normal; text-transform: none;
+  color: var(--evc-text);
+}
+.evc-overlay .evc-m-desc h3 { font-size: 1.15em; }
+.evc-overlay .evc-m-desc h4 { font-size: 1em; }
+.evc-overlay .evc-m-desc blockquote { margin: 0 0 .75em 1.5em; padding: 0; border: 0; background: none; }
+.evc-overlay .evc-m-desc a { color: var(--evc-accent); text-decoration: underline; }
+.evc-overlay .evc-m-desc > :last-child { margin-bottom: 0; }
 .evc-overlay .evc-m-link {
   display: inline-block;
   margin-top: 1.3em;

@@ -15,6 +15,7 @@
   try { CAT_COLORS = JSON.parse(form.getAttribute('data-catcolors') || '{}'); } catch (e) {}
 
   function $(id) { return document.getElementById(id); }
+  function each(list, fn) { Array.prototype.forEach.call(list, fn); }
   function t(key, fallback) { return LABELS[key] || fallback || key; }
   function h(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -67,6 +68,74 @@
     dTo.min = dFrom.value;
   });
   if (dFrom.value) { dTo.min = dFrom.value; }
+
+  /* ---------------- Description editor ---------------- */
+  var descEditor = $('ec_desc_editor');
+  var descInput = $('ec_description');
+  if (descEditor && descInput) {
+    // If the editor script did not load, the box is still editable (without a toolbar)
+    if (!descEditor.isContentEditable) { descEditor.contentEditable = 'true'; }
+    var syncDesc = function () { descInput.value = descEditor.innerHTML; };
+    descEditor.addEventListener('input', syncDesc);
+    form.addEventListener('submit', syncDesc);
+    // Paste as plain text, so text copied from Word or a web page does not bring its own fonts and colours
+    descEditor.addEventListener('paste', function (e) {
+      var cd = e.clipboardData || window.clipboardData;
+      if (!cd) { return; }
+      e.preventDefault();
+      document.execCommand('insertText', false, cd.getData('text/plain') || cd.getData('Text'));
+      syncDesc();
+    });
+  }
+
+  /* ---------------- Repeat ---------------- */
+  var repType = $('ec_repeat_type');
+  if (repType) {
+    var repAll = form.querySelector('.ec-rep-all');
+    var repWeekly = form.querySelector('.ec-rep-weekly');
+    var repMonthly = form.querySelector('.ec-rep-monthly');
+    var repUnit = $('ec_rep_unit');
+    var repEnd = $('ec_repeat_end');
+    var repUntil = $('ec_repeat_until');
+    var repCount = form.querySelector('.ec-rep-countwrap');
+    var repTouched = form.getAttribute('data-hasrepeat') === '1';   // a saved rule is never overwritten
+    var wdBoxes = form.querySelectorAll('input[name="repeat_weekdays[]"]');
+
+    function startWeekday() {
+      var p = (dFrom.value || '').split('-');
+      if (p.length !== 3) { return null; }
+      var d = new Date(+p[0], +p[1] - 1, +p[2], 12);
+      return { wd: d.getDay(), nth: Math.ceil(d.getDate() / 7) };
+    }
+
+    // Suggest values from the start date, until the user changes them
+    function prefill() {
+      if (repTouched) { return; }
+      var s = startWeekday();
+      if (!s) { return; }
+      for (var i = 0; i < wdBoxes.length; i++) { wdBoxes[i].checked = (+wdBoxes[i].value === s.wd); }
+      $('ec_repeat_weekday').value = String(s.wd);
+      $('ec_repeat_nth').value = String(s.nth > 4 ? -1 : s.nth);
+    }
+
+    function syncRepeat() {
+      var t = repType.value;
+      repAll.hidden = (t === '');
+      repWeekly.hidden = (t !== 'weekly');
+      repMonthly.hidden = (t !== 'monthly');
+      repUnit.textContent = t === 'monthly' ? repUnit.getAttribute('data-months') : repUnit.getAttribute('data-weeks');
+      repUntil.hidden = (repEnd.value !== 'until');
+      repCount.hidden = (repEnd.value !== 'count');
+    }
+
+    repType.addEventListener('change', function () { prefill(); syncRepeat(); });
+    repEnd.addEventListener('change', syncRepeat);
+    each(form.querySelectorAll('.ec-rep-all input, .ec-rep-all select'), function (n) {
+      n.addEventListener('change', function () { if (n !== repEnd) { repTouched = true; } });
+    });
+    dFrom.addEventListener('change', function () { if (repType.value) { prefill(); } });
+    syncRepeat();
+  }
 
   /* ---------------- Image field ---------------- */
   var imgInput = $('ec_image');

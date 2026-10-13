@@ -15,7 +15,15 @@
   var data;
   try { data = JSON.parse(dataEl.textContent); } catch (e) { return; }
 
-  var EVENTS = data.events || [];
+  // Repeating events arrive as one full record (series) plus a small entry per date.
+  var SERIES = data.series || {};
+  var EVENTS = (data.events || []).map(function (e) {
+    if (!e.series || !SERIES[e.series]) { return e; }
+    var full = {}, k;
+    for (k in SERIES[e.series]) { if (Object.prototype.hasOwnProperty.call(SERIES[e.series], k)) { full[k] = SERIES[e.series][k]; } }
+    for (k in e) { if (Object.prototype.hasOwnProperty.call(e, k)) { full[k] = e[k]; } }
+    return full;
+  });
   var S = data.settings || {};
   var L = S.labels || {};
   var LOCALE = S.locale || 'en';
@@ -56,7 +64,8 @@
   var ICONS = {
     calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-    pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'
+    pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>'
   };
   function icon(name) {
     var w = document.createElement('span');
@@ -64,6 +73,43 @@
       'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
       ICONS[name] + '</svg>';
     return w.firstChild;
+  }
+
+  /**
+   * Second line of defence for the description: the server has already cleaned it, this keeps
+   * only the same short list of tags in the browser. A template element is inert, so nothing
+   * in the text runs while it is being cleaned.
+   */
+  var SAFE_TAGS = { P: 1, DIV: 1, BR: 1, B: 1, STRONG: 1, I: 1, EM: 1, U: 1, UL: 1, OL: 1, LI: 1, H3: 1, H4: 1, BLOCKQUOTE: 1, A: 1 };
+  var DROP_TAGS = /^(SCRIPT|STYLE|IFRAME|FRAME|FRAMESET|OBJECT|EMBED|APPLET|FORM|INPUT|BUTTON|TEXTAREA|SELECT|OPTION|SVG|MATH|LINK|META|BASE|TITLE|NOSCRIPT|TEMPLATE|IMG|VIDEO|AUDIO|SOURCE|CANVAS|MAP|AREA)$/;
+  function safeHtml(html) {
+    var t = document.createElement('template');
+    t.innerHTML = html;
+    (function clean(node) {
+      Array.prototype.slice.call(node.childNodes).forEach(function (c) {
+        if (c.nodeType === 3) { return; }
+        if (c.nodeType !== 1) { node.removeChild(c); return; }
+        if (DROP_TAGS.test(c.tagName)) { node.removeChild(c); return; }
+        clean(c);
+        var okLink = c.tagName === 'A' && /^(https?:|mailto:|tel:)/i.test((c.getAttribute('href') || '').replace(/[\s\u0000-\u001f]+/g, ''));
+        if (!SAFE_TAGS[c.tagName] || (c.tagName === 'A' && !okLink)) {
+          while (c.firstChild) { node.insertBefore(c.firstChild, c); }
+          node.removeChild(c);
+          return;
+        }
+        var style = c.getAttribute('style') || '';
+        var href = c.getAttribute('href');
+        Array.prototype.slice.call(c.attributes).forEach(function (a) { c.removeAttribute(a.name); });
+        var m = /text-align\s*:\s*(left|right|center|justify)/i.exec(style);
+        if (m && c.tagName !== 'A') { c.style.textAlign = m[1].toLowerCase(); }
+        if (c.tagName === 'A') {
+          c.setAttribute('href', href);
+          c.setAttribute('rel', 'noopener noreferrer');
+          c.setAttribute('target', '_blank');
+        }
+      });
+    })(t.content);
+    return t.innerHTML;
   }
 
   /** Readable text colour (dark or white) for a given #rrggbb background. */
@@ -225,9 +271,14 @@
 
       meta(b, 'calendar', ev.dateText);
       meta(b, 'clock', ev.timeText);
+      meta(b, 'repeat', ev.repeatText);
       meta(b, 'pin', ev.location);
 
-      if (ev.description) { b.appendChild(el('div', 'evc-m-desc', ev.description)); }
+      if (ev.description) {
+        var desc = el('div', 'evc-m-desc');
+        desc.innerHTML = safeHtml(ev.description);
+        b.appendChild(desc);
+      }
 
       if (ev.url && /^https?:\/\//i.test(ev.url)) {
         var a = el('a', 'evc-m-link', L.moreInfo || 'More information');
