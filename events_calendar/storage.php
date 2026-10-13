@@ -190,7 +190,7 @@ function ec_clean_image_path($rel) {
  * Rich text (event description)
  * ---------------------------------------------------------------- */
 function ec_desc_is_html($s) {
-	return preg_match('/<\/?(p|div|br|b|strong|i|em|u|ul|ol|li|h[1-6]|blockquote|a|span)\b/i', (string)$s) === 1;
+	return preg_match('/<\/?(p|div|br|b|strong|i|em|u|ul|ol|li|h[1-6]|blockquote|a|span|font)\b/i', (string)$s) === 1;
 }
 
 /** Plain text (blank line = new paragraph) to HTML. */
@@ -234,7 +234,7 @@ function ec_sanitize_html($html) {
 
 /** Without the DOM extension: keep a few tags and drop every attribute. */
 function ec_sanitize_html_basic($html) {
-	$h = strip_tags($html, '<p><div><br><b><strong><i><em><u><ul><ol><li><h3><h4><blockquote>');
+	$h = strip_tags($html, '<p><div><br><b><strong><i><em><u><ul><ol><li><h3><h4><blockquote><span><font>');
 	return preg_replace('/<(\/?)([a-z0-9]+)\b[^>]*>/i', '<$1$2>', $h);
 }
 
@@ -262,7 +262,7 @@ function ec_safe_href($h) {
 
 function ec_clean_dom_node($node) {
 	static $allowed = array('p' => 1, 'div' => 1, 'br' => 1, 'b' => 1, 'strong' => 1, 'i' => 1, 'em' => 1, 'u' => 1,
-							'ul' => 1, 'ol' => 1, 'li' => 1, 'h3' => 1, 'h4' => 1, 'blockquote' => 1, 'a' => 1);
+							'ul' => 1, 'ol' => 1, 'li' => 1, 'h3' => 1, 'h4' => 1, 'blockquote' => 1, 'a' => 1, 'span' => 1, 'font' => 1);
 	// removed together with everything inside them
 	static $drop = array('script' => 1, 'style' => 1, 'iframe' => 1, 'frame' => 1, 'frameset' => 1, 'object' => 1, 'embed' => 1,
 						 'applet' => 1, 'form' => 1, 'input' => 1, 'button' => 1, 'textarea' => 1, 'select' => 1, 'option' => 1,
@@ -270,7 +270,7 @@ function ec_clean_dom_node($node) {
 						 'noscript' => 1, 'template' => 1, 'img' => 1, 'video' => 1, 'audio' => 1, 'source' => 1,
 						 'canvas' => 1, 'map' => 1, 'area' => 1);
 	// the editor offers six title sizes; the site uses two
-	static $rename = array('h1' => 'h3', 'h2' => 'h3', 'h5' => 'h4', 'h6' => 'h4', 'pre' => 'p');
+	static $rename = array('h1' => 'h3', 'h2' => 'h3', 'h5' => 'h4', 'h6' => 'h4', 'pre' => 'p', 'font' => 'span');
 
 	$kids = array();
 	foreach ($node->childNodes as $c) { $kids[] = $c; }
@@ -303,13 +303,16 @@ function ec_clean_dom_node($node) {
 }
 
 function ec_clean_dom_attrs($el, $tag) {
-	$style = $el->getAttribute('style');
-	$align = trim($el->getAttribute('align'));
-	$href  = trim($el->getAttribute('href'));
+	$style     = (string)$el->getAttribute('style');
+	$align     = trim((string)$el->getAttribute('align'));
+	$href      = trim((string)$el->getAttribute('href'));
+	$fontColor = trim((string)$el->getAttribute('color'));
 
 	$names = array();
 	foreach ($el->attributes as $a) { $names[] = $a->nodeName; }
 	foreach ($names as $n) { $el->removeAttribute($n); }
+
+	$css_rules = array();
 
 	$ta = '';
 	if (preg_match('/text-align\s*:\s*(left|right|center|justify)/i', $style, $m)) {
@@ -318,8 +321,25 @@ function ec_clean_dom_attrs($el, $tag) {
 		$ta = strtolower($m[1]);
 	}
 	if ($ta !== '' && in_array($tag, array('p', 'div', 'h3', 'h4', 'li', 'blockquote'), true)) {
-		$el->setAttribute('style', 'text-align: ' . $ta);
+		$css_rules[] = 'text-align: ' . $ta;
 	}
+
+
+	if (preg_match('/(?:^|;)\s*color\s*:\s*([^;]+)/i', $style, $cm)) {
+		$val = trim($cm[1]);
+		if (preg_match('/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*[\d.]+\s*)?\)|hsla?\([^)]+\)|[a-zA-Z]+)$/i', $val)) {
+			$css_rules[] = 'color: ' . $val;
+		}
+	}
+
+	elseif ($fontColor !== '' && preg_match('/^(#[0-9a-fA-F]{3,8}|[a-zA-Z]+)$/i', $fontColor)) {
+		$css_rules[] = 'color: ' . $fontColor;
+	}
+
+	if (!empty($css_rules)) {
+		$el->setAttribute('style', implode('; ', $css_rules));
+	}
+
 	if ($tag === 'a') {
 		$el->setAttribute('href', $href);
 		$el->setAttribute('rel', 'noopener noreferrer');

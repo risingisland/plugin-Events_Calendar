@@ -86,6 +86,58 @@
       document.execCommand('insertText', false, cd.getData('text/plain') || cd.getData('Text'));
       syncDesc();
     });
+
+    // Localize the tiny-editor toolbar
+    (function localizeToolbar() {
+      var toolbar = form.querySelector('.__toolbar');
+      if (!toolbar) { return; }
+
+      var titles = {
+        'formatblock': t('tb_styles', 'Styles'),
+        'bold': t('tb_bold', 'Bold'),
+        'italic': t('tb_italic', 'Italic'),
+        'underline': t('tb_underline', 'Underline'),
+        'forecolor': t('tb_color', 'Text color'),
+        'justifyleft': t('tb_align_left', 'Left align'),
+        'justifycenter': t('tb_align_center', 'Center align'),
+        'justifyright': t('tb_align_right', 'Right align'),
+        'insertorderedlist': t('tb_list_ol', 'Numbered list'),
+        'insertunorderedlist': t('tb_list_ul', 'Bulleted list'),
+        'outdent': t('tb_outdent', 'Decrease indent'),
+        'indent': t('tb_indent', 'Increase indent'),
+        'removeFormat': t('tb_clear', 'Clear formatting')
+      };
+
+      var optionLabels = {
+        'h1': t('tb_title1', 'Title 1'),
+        'h2': t('tb_title2', 'Title 2'),
+        'h3': t('tb_title3', 'Title 3'),
+        'h4': t('tb_title4', 'Title 4'),
+        'h5': t('tb_title5', 'Title 5'),
+        'h6': t('tb_title6', 'Title 6'),
+        'p':  t('tb_paragraph', 'Paragraph'),
+        'pre': t('tb_pre', 'Preformatted')
+      };
+
+      // Translate button/input titles
+      each(toolbar.querySelectorAll('[data-command-id]'), function (item) {
+        var cmd = item.getAttribute('data-command-id');
+        if (titles[cmd]) {
+          item.title = titles[cmd];
+          item.setAttribute('aria-label', titles[cmd]);
+        }
+      });
+
+      // Translate formatblock select options
+      var formatSelect = toolbar.querySelector('select[data-command-id="formatblock"]');
+      if (formatSelect) {
+        each(formatSelect.options, function (opt) {
+          if (optionLabels[opt.value]) {
+            opt.textContent = optionLabels[opt.value];
+          }
+        });
+      }
+    })();
   }
 
   /* ---------------- Repeat ---------------- */

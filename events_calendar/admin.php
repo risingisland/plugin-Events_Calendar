@@ -145,9 +145,15 @@ function ec_admin_list() {
 /* ----- Tab: Add / Edit ------------------------------------------------------------- */
 
 function ec_admin_js_labels() {
-	$keys = array('img_library', 'img_root', 'img_new_folder', 'img_upload', 'img_drop', 'img_empty', 'img_use',
-				  'img_loading', 'img_uploading', 'img_uploaded', 'img_pick_files', 'img_prompt', 'img_up',
-				  'img_truncated', 'img_network', 'img_bad_response', 'cancel', 'close', 'no_image');
+	$keys = array(
+		'img_library', 'img_root', 'img_new_folder', 'img_upload', 'img_drop', 'img_empty', 'img_use',
+		'img_loading', 'img_uploading', 'img_uploaded', 'img_pick_files', 'img_prompt', 'img_up',
+		'img_truncated', 'img_network', 'img_bad_response', 'cancel', 'close', 'no_image',
+		'tb_styles', 'tb_title1', 'tb_title2', 'tb_title3', 'tb_title4', 'tb_title5', 'tb_title6',
+		'tb_paragraph', 'tb_pre', 'tb_bold', 'tb_italic', 'tb_underline', 'tb_color',
+		'tb_align_left', 'tb_align_center', 'tb_align_right', 'tb_list_ol', 'tb_list_ul',
+		'tb_outdent', 'tb_indent', 'tb_clear'
+	);
 	$out = array();
 	foreach ($keys as $k) { $out[$k] = ec_t($k); }
 	return $out;

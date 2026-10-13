@@ -76,11 +76,9 @@
   }
 
   /**
-   * Second line of defence for the description: the server has already cleaned it, this keeps
-   * only the same short list of tags in the browser. A template element is inert, so nothing
-   * in the text runs while it is being cleaned.
+   * Client-side sanitization whitelist
    */
-  var SAFE_TAGS = { P: 1, DIV: 1, BR: 1, B: 1, STRONG: 1, I: 1, EM: 1, U: 1, UL: 1, OL: 1, LI: 1, H3: 1, H4: 1, BLOCKQUOTE: 1, A: 1 };
+  var SAFE_TAGS = { P: 1, DIV: 1, BR: 1, B: 1, STRONG: 1, I: 1, EM: 1, U: 1, UL: 1, OL: 1, LI: 1, H3: 1, H4: 1, BLOCKQUOTE: 1, A: 1, SPAN: 1, FONT: 1 };
   var DROP_TAGS = /^(SCRIPT|STYLE|IFRAME|FRAME|FRAMESET|OBJECT|EMBED|APPLET|FORM|INPUT|BUTTON|TEXTAREA|SELECT|OPTION|SVG|MATH|LINK|META|BASE|TITLE|NOSCRIPT|TEMPLATE|IMG|VIDEO|AUDIO|SOURCE|CANVAS|MAP|AREA)$/;
   function safeHtml(html) {
     var t = document.createElement('template');
@@ -99,9 +97,21 @@
         }
         var style = c.getAttribute('style') || '';
         var href = c.getAttribute('href');
+        var fontColor = c.getAttribute('color');
         Array.prototype.slice.call(c.attributes).forEach(function (a) { c.removeAttribute(a.name); });
-        var m = /text-align\s*:\s*(left|right|center|justify)/i.exec(style);
-        if (m && c.tagName !== 'A') { c.style.textAlign = m[1].toLowerCase(); }
+        
+        // Preserve text alignment
+        var mAlign = /text-align\s*:\s*(left|right|center|justify)/i.exec(style);
+        if (mAlign && c.tagName !== 'A') { c.style.textAlign = mAlign[1].toLowerCase(); }
+
+        // Preserve color
+        var mColor = /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(style);
+        if (mColor) {
+          c.style.color = mColor[1].trim();
+        } else if (fontColor) {
+          c.style.color = fontColor.trim();
+        }
+
         if (c.tagName === 'A') {
           c.setAttribute('href', href);
           c.setAttribute('rel', 'noopener noreferrer');
@@ -193,7 +203,6 @@
     function onKey(e) {
       if (e.key === 'Escape' || e.keyCode === 27) { e.stopPropagation(); close(); return; }
       if (e.key !== 'Tab' && e.keyCode !== 9) { return; }
-      // keep focus inside the dialog
       var f = dialog.querySelectorAll('button, a[href], [tabindex="0"]');
       if (!f.length) { e.preventDefault(); dialog.focus(); return; }
       var first = f[0], last = f[f.length - 1];
@@ -474,13 +483,11 @@
 
     var lib = window.EventCalendar;
     if (!lib || typeof lib.create !== 'function') {
-      // Library missing: show the same plain list that no-JS visitors get
       var ns = root.querySelector('noscript');
       if (ns) { mount.innerHTML = ns.textContent; initCards(); }
       return;
     }
 
-    // In a narrow area (below the breakpoint) the calendar becomes a month list or the compact dots calendar
     var mobileAttr = root.getAttribute('data-evc-mobile');
     var mobileMode = (mobileAttr === 'grid' || mobileAttr === 'compact') ? mobileAttr : 'list';
     var breakpoint = parseInt(root.getAttribute('data-evc-breakpoint'), 10) || 560;
@@ -491,7 +498,6 @@
     }
     function viewFor(mode) { return mode === 'list' ? 'listMonth' : 'dayGridMonth'; }
 
-    // The calendar shows every event as an all-day bar. EventCalendar treats `end` as exclusive.
     function libEventsFor(chosen) {
       return eventsFor(root, chosen).map(function (e) {
         return {
@@ -529,7 +535,6 @@
         buttonText: function (t) {
           return Object.assign({}, t, { today: L.today || 'Today', prev: L.prev || 'Previous', next: L.next || 'Next' });
         },
-        // Month name + red year; the midpoint of the range always falls inside the shown month
         titleFormat: function (start, end) {
           var mid = new Date((start.getTime() + end.getTime()) / 2);
           return { html: esc(cap(fmt(mid, { month: 'long' }))) + ' <span class="evc-year">' + mid.getFullYear() + '</span>' };
@@ -537,7 +542,6 @@
         allDayContent: { html: '&nbsp;' },
         noEventsContent: L.noEvents || 'No events',
         eventContent: function (info) {
-          // List layout (phones): put the time next to the title
           if (info.view && info.view.type === 'listMonth') {
             var ev = BY_ID[info.event.id];
             if (ev) { return ev.title + (ev.timeText ? ' \u00B7 ' + ev.timeText : ''); }
@@ -546,7 +550,7 @@
         eventDidMount: function (info) {
           var ev = BY_ID[info.event.id];
           if (!ev) { return; }
-          info.el.setAttribute('title', ev.title);          // hover shows the title
+          info.el.setAttribute('title', ev.title);
           info.el.setAttribute('role', 'button');
           info.el.setAttribute('aria-haspopup', 'dialog');
           info.el.tabIndex = 0;
@@ -567,7 +571,6 @@
       return;
     }
 
-    // Compact calendar that replaces the month grid in a narrow area
     var compact = null, compactMount = null, currentMode = null;
     if (mobileMode === 'compact') {
       compactMount = el('div', 'evc-compact-embed');
@@ -591,7 +594,6 @@
     }
     applyMode();
 
-    // Label the year buttons for screen readers
     try {
       each(mount.querySelectorAll('.ec-prevYear'), function (b) {
         b.setAttribute('aria-label', L.prevYear || 'Previous year'); b.title = L.prevYear || '';
@@ -601,7 +603,6 @@
       });
     } catch (e) {}
 
-    // Category buttons above the calendar: [events view="calendar" filter="1"]
     if (root.getAttribute('data-evc-filter') === '1') {
       var present = {};
       eventsFor(root, null).forEach(function (e) { if (e.category) { present[e.category] = true; } });
@@ -640,7 +641,6 @@
       }
     }
 
-    // Re-check when the width of the calendar's own container changes
     var timer;
     function onSize() { clearTimeout(timer); timer = setTimeout(applyMode, 120); }
     if (window.ResizeObserver) { new ResizeObserver(onSize).observe(root); }
