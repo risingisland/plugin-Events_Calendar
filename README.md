@@ -2,10 +2,6 @@
 
 A plugin for [GetSimple CMS](https://github.com/GetSimpleCMS-CE/GetSimpleCMS-CE) that lets you create and manage events in the admin area and show them on your site as a full calendar, a compact calendar, a list, a grid, or a sidebar mini-list.
 
-- **Version:** 1.0
-- **Author:** [risingisland](https://ko-fi.com/ericmontgomery)
-- **Languages:** English, Spanish (more are easy to add, see [Translations](#translations))
-
 ## Features
 
 - Five views: **calendar**, **compact**, **mini**, **list** and **grid**
