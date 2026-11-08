@@ -21,7 +21,7 @@
 .ec-table { width: 100%; border-collapse: collapse; background: #fff; }
 .ec-table th, .ec-table td { padding: 9px 10px; border-bottom: 1px solid #e6e8ee; text-align: left; vertical-align: top; }
 .ec-table th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #777; }
-.ec-table tr.ec-past td { opacity: .6; }
+/*.ec-table tr.ec-past td { opacity: .85; }*/
 .ec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
 .ec-actions { white-space: nowrap; }
 .ec-inline { display: inline; margin: 0; }
@@ -189,3 +189,5 @@ hr {margin-bottom: 2rem; border: 1px solid #ADADF1}
   text-decoration: none!important;
   font-weight: bold!important;
 }
+
+.ec-admin footer{text-align:center; padding-top: 10px; margin-top: 20px; margin-bottom: -20px; border-top:solid 1px lightgrey;}
